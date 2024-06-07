@@ -459,6 +459,12 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
             _player = AVPlayer()
             _player!.replaceCurrentItem(with: playerItem)
 
+            // Temporary workaround for issue when playback stops when locking the screen on iOS
+            // Details: https://github.com/react-native-video/react-native-video/issues/3652
+            if #available(iOS 15.0, *) {
+                _player?.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
+            }
+
             if _showNotificationControls {
                 // We need to register player after we set current item and only for init
                 NowPlayingInfoCenterManager.shared.registerPlayer(player: _player!)
