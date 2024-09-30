@@ -1079,6 +1079,18 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
 
     func createPlayerViewController(player: AVPlayer, withPlayerItem _: AVPlayerItem) -> RCTVideoPlayerViewController {
         let viewController = RCTVideoPlayerViewController()
+
+        if #available(iOS 16.0, *) {
+           viewController.speeds = [
+               AVPlaybackSpeed(rate: 0.5, localizedName: "0,5x"),
+               AVPlaybackSpeed(rate: 0.75, localizedName: "0,75x"),
+               AVPlaybackSpeed(rate: 1, localizedName: "1,0x"),
+               AVPlaybackSpeed(rate: 1.25, localizedName: "1,25x"),
+               AVPlaybackSpeed(rate: 1.5, localizedName: "1,5x"),
+               AVPlaybackSpeed(rate: 2.0, localizedName: "2,0x")
+           ];
+       }
+
         viewController.showsPlaybackControls = self._controls
         #if !os(tvOS)
             viewController.updatesNowPlayingInfoCenter = false
