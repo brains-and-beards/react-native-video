@@ -8,11 +8,12 @@ It allows to stream video files (m3u, mpd, mp4, ...) inside your react native ap
 - Exoplayer for android
 - AVplayer for iOS, tvOS and visionOS
 - Windows UWP for windows
+- HTML5 for web
 - Trick mode support
 - Subtitles (embeded or side loaded)
 - DRM support
 - Client side Ads insertion (via google IMA)
-- Pip (ios)
+- Pip
 - Embedded playback controls
 - And much more
 
