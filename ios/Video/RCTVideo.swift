@@ -1189,6 +1189,14 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
 
         viewController.view.frame = self.bounds
         viewController.player = player
+
+        // Set the initial playback speed in controls to match playback rate
+        if #available(iOS 16.0, *) {
+            if let initialSpeed = viewController.speeds.first(where: { $0.rate == _rate }) {
+                viewController.selectSpeed(initialSpeed)
+            }
+        }
+
         if #available(tvOS 14.0, *) {
             viewController.allowsPictureInPicturePlayback = _enterPictureInPictureOnLeave
         }
