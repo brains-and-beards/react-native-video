@@ -272,6 +272,12 @@ const BasicExample = () => {
             onReadyForDisplay={onReadyForDisplay}
             onBuffer={onVideoBuffer}
             onBandwidthUpdate={onVideoBandwidthUpdate}
+            onFullscreenPlayerWillPresent={() => {
+              console.log('Fullscreen player will present');
+            }}
+            onFullscreenPlayerDidDismiss={() => {
+              console.log('Fullscreen player will dismiss');
+            }}
             onSeek={onSeek}
             repeat={repeat}
             selectedTextTrack={selectedTextTrack}

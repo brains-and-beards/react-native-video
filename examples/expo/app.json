@@ -17,7 +17,7 @@
         }
       ],
       [
-        "../../lib/expo-plugins/withRNVideo.js", 
+        "../../lib/expo-plugins/withRNVideo.js",
         {
           "reactNativeTestApp": true,
           "enableNotificationControls": true,
@@ -36,10 +36,15 @@
     "name": "ExpoExample",
     "slug": "ExpoExample",
     "android": {
-      "package": "com.anonymous.ExpoExample"
+      "package": "com.anonymous.ExpoExample",
+      "permissions": [
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "ios": {
-      "bundleIdentifier": "com.anonymous.ExpoExample"
+      "bundleIdentifier": "com.anonymous.ExpoExample",
+      "appleTeamId": "L93V73FXZ5"
     }
   }
 }
