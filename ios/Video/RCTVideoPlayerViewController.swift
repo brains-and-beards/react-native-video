@@ -1,4 +1,5 @@
 import AVKit
+import React
 
 class RCTVideoPlayerViewController: AVPlayerViewController {
     weak var rctDelegate: RCTVideoPlayerViewControllerDelegate?
@@ -8,11 +9,22 @@ class RCTVideoPlayerViewController: AVPlayerViewController {
     var autorotate: Bool?
 
     func shouldAutorotate() -> Bool {
-        if autorotate! || preferredOrientation == nil || (preferredOrientation!.lowercased() == "all") {
+        RCTLog("Should autorotate?")
+        RCTLog("autorotate: \(autorotate)")
+        RCTLog("preferredOrientation: \(preferredOrientation)")
+
+        if autorotate! || preferredOrientation == nil
+            || (preferredOrientation!.lowercased() == "all")
+        {
             return true
         }
 
         return false
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        self.delegate = self
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -36,7 +48,8 @@ class RCTVideoPlayerViewController: AVPlayerViewController {
             } else {
                 // default case
                 if #available(iOS 13, tvOS 13, *) {
-                    return RCTVideoUtils.getCurrentWindow()?.windowScene?.interfaceOrientation ?? .unknown
+                    return RCTVideoUtils.getCurrentWindow()?.windowScene?.interfaceOrientation
+                        ?? .unknown
                 } else {
                     #if !os(visionOS)
                         return UIApplication.shared.statusBarOrientation

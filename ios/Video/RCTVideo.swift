@@ -1758,6 +1758,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
         RCTLog("Change: \(change)")
 
         guard let bounds = RCTVideoUtils.getCurrentWindow()?.bounds else { return }
+        RCTLog("Bounds: \(bounds)")
 
         if !oldRect!.equalTo(newRect!) {
             // https://github.com/TheWidlarzGroup/react-native-video/issues/3085#issuecomment-1557293391

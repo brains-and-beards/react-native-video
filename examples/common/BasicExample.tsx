@@ -1,6 +1,12 @@
 import React, {useCallback, useRef, useState, useEffect} from 'react';
 
-import {Platform, TouchableOpacity, View, StatusBar} from 'react-native';
+import {
+  Platform,
+  TouchableOpacity,
+  View,
+  StatusBar,
+  ViewStyle,
+} from 'react-native';
 
 import Video, {
   SelectedVideoTrackType,
@@ -68,7 +74,7 @@ const BasicExample = () => {
     });
   const [srcListId, setSrcListId] = useState(0);
   const [repeat, setRepeat] = useState(false);
-  const [controls, setControls] = useState(false);
+  const [controls, setControls] = useState(true);
   const [useCache, setUseCache] = useState(false);
   const [showPoster, setShowPoster] = useState<boolean>(false);
   const [showNotificationControls, setShowNotificationControls] =
@@ -93,6 +99,14 @@ const BasicExample = () => {
     setSelectedVideoTrack({
       type: SelectedVideoTrackType.AUTO,
     });
+  }, []);
+
+  const handleFullscreenPresent = useCallback(() => {
+    console.log('Present fullscreen callback, are we fullscreen?', fullscreen);
+  }, []);
+
+  const handleFullscreenDismiss = useCallback(() => {
+    console.log('Dismiss fullscreen callback, are we fullscreen?', fullscreen);
   }, []);
 
   const channelUp = useCallback(() => {
@@ -238,64 +252,68 @@ const BasicExample = () => {
     videoRef.current?.setSource({...currentSrc, bufferConfig: _bufferConfig});
   }, [currentSrc]);
 
+  const containerStyle = {
+    // flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'black',
+    height: 250,
+  } as ViewStyle;
+
   return (
-    <View style={styles.container}>
+    <View style={containerStyle}>
       <StatusBar animated={true} backgroundColor="black" hidden={false} />
 
-      {(srcList[srcListId] as AdditionalSourceInfo)?.noView ? null : (
-        <TouchableOpacity style={viewStyle}>
-          <Video
-            showNotificationControls={showNotificationControls}
-            ref={videoRef}
-            //            source={currentSrc as ReactVideoSource}
-            drm={additional?.drm}
-            style={viewStyle}
-            rate={rate}
-            paused={paused}
-            volume={volume}
-            muted={muted}
-            controls={controls}
-            resizeMode={resizeMode}
-            onLoad={onLoad}
-            onAudioTracks={onAudioTracks}
-            onTextTracks={onTextTracks}
-            onVideoTracks={onVideoTracks}
-            onTextTrackDataChanged={onTextTrackDataChanged}
-            onProgress={onProgress}
-            onEnd={onEnd}
-            progressUpdateInterval={1000}
-            onError={onError}
-            onAudioBecomingNoisy={onAudioBecomingNoisy}
-            onAudioFocusChanged={onAudioFocusChanged}
-            onLoadStart={onVideoLoadStart}
-            onAspectRatio={onAspectRatio}
-            onReadyForDisplay={onReadyForDisplay}
-            onBuffer={onVideoBuffer}
-            onBandwidthUpdate={onVideoBandwidthUpdate}
-            onFullscreenPlayerWillPresent={() => {
-              console.log('Fullscreen player will present');
-            }}
-            onFullscreenPlayerDidDismiss={() => {
-              console.log('Fullscreen player will dismiss');
-            }}
-            onSeek={onSeek}
-            repeat={repeat}
-            selectedTextTrack={selectedTextTrack}
-            selectedAudioTrack={selectedAudioTrack}
-            selectedVideoTrack={selectedVideoTrack}
-            playInBackground={false}
-            preventsDisplaySleepDuringVideoPlayback={true}
-            renderLoader={_renderLoader}
-            onPlaybackRateChange={onPlaybackRateChange}
-            onPlaybackStateChanged={onPlaybackStateChanged}
-            bufferingStrategy={BufferingStrategyType.DEFAULT}
-            debug={{enable: true, thread: true}}
-            subtitleStyle={_subtitleStyle}
-            controlsStyles={_controlsStyles}
-          />
-        </TouchableOpacity>
-      )}
-      <Overlay
+      {/* {(srcList[srcListId] as AdditionalSourceInfo)?.noView ? null : (
+        <TouchableOpacity style={viewStyle}> */}
+      <Video
+        showNotificationControls={showNotificationControls}
+        ref={videoRef}
+        //            source={currentSrc as ReactVideoSource}
+        drm={additional?.drm}
+        style={viewStyle}
+        rate={rate}
+        paused={paused}
+        volume={volume}
+        muted={muted}
+        controls={controls}
+        resizeMode={resizeMode}
+        onLoad={onLoad}
+        onAudioTracks={onAudioTracks}
+        onTextTracks={onTextTracks}
+        onVideoTracks={onVideoTracks}
+        onTextTrackDataChanged={onTextTrackDataChanged}
+        onProgress={onProgress}
+        onEnd={onEnd}
+        progressUpdateInterval={1000}
+        onError={onError}
+        onAudioBecomingNoisy={onAudioBecomingNoisy}
+        onAudioFocusChanged={onAudioFocusChanged}
+        onLoadStart={onVideoLoadStart}
+        onAspectRatio={onAspectRatio}
+        onReadyForDisplay={onReadyForDisplay}
+        onBuffer={onVideoBuffer}
+        onBandwidthUpdate={onVideoBandwidthUpdate}
+        onFullscreenPlayerWillPresent={handleFullscreenPresent}
+        onFullscreenPlayerDidDismiss={handleFullscreenDismiss}
+        onSeek={onSeek}
+        repeat={repeat}
+        selectedTextTrack={selectedTextTrack}
+        selectedAudioTrack={selectedAudioTrack}
+        selectedVideoTrack={selectedVideoTrack}
+        playInBackground={false}
+        preventsDisplaySleepDuringVideoPlayback={true}
+        renderLoader={_renderLoader}
+        onPlaybackRateChange={onPlaybackRateChange}
+        onPlaybackStateChanged={onPlaybackStateChanged}
+        bufferingStrategy={BufferingStrategyType.DEFAULT}
+        debug={{enable: true, thread: true}}
+        subtitleStyle={_subtitleStyle}
+        controlsStyles={_controlsStyles}
+      />
+      {/* </TouchableOpacity>
+      )} */}
+      {/* <Overlay
         channelDown={channelDown}
         channelUp={channelUp}
         ref={videoRef}
@@ -335,7 +353,7 @@ const BasicExample = () => {
         setVolume={setVolume}
         useCache={useCache}
         srcListId={srcListId}
-      />
+      /> */}
     </View>
   );
 };
