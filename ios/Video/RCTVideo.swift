@@ -56,7 +56,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     private var _fullscreenAutorotate = true
     private var _fullscreenOrientation: String = "all"
     private var _fullscreenPlayerPresented = false
-    private var _fullscreenUncontrolPlayerPresented = false  // to call events switching full screen mode from player controls
+//    private var _fullscreenUncontrolPlayerPresented = false  // to call events switching full screen mode from player controls
     private var _filterName: String!
     private var _filterEnabled = false
     private var _presentingViewController: UIViewController?
@@ -1761,24 +1761,24 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
         RCTLog("Bounds: \(bounds)")
 
         if !oldRect!.equalTo(newRect!) {
-            // https://github.com/TheWidlarzGroup/react-native-video/issues/3085#issuecomment-1557293391
-            if newRect!.equalTo(bounds) {
-                RCTLog("in fullscreen")
-                if !_fullscreenUncontrolPlayerPresented {
-                    _fullscreenUncontrolPlayerPresented = true
-
-                    self.onVideoFullscreenPlayerWillPresent?(["target": self.reactTag as Any])
-                    self.onVideoFullscreenPlayerDidPresent?(["target": self.reactTag as Any])
-                }
-            } else {
-                RCTLog("not fullscreen")
-                if _fullscreenUncontrolPlayerPresented {
-                    _fullscreenUncontrolPlayerPresented = false
-
-                    self.onVideoFullscreenPlayerWillDismiss?(["target": self.reactTag as Any])
-                    self.onVideoFullscreenPlayerDidDismiss?(["target": self.reactTag as Any])
-                }
-            }
+             https://github.com/TheWidlarzGroup/react-native-video/issues/3085#issuecomment-1557293391
+//            if newRect!.equalTo(bounds) {
+//                RCTLog("in fullscreen")
+//                if !_fullscreenUncontrolPlayerPresented {
+//                    _fullscreenUncontrolPlayerPresented = true
+//
+//
+//
+//                }
+//            } else {
+//                RCTLog("not fullscreen")
+//                if _fullscreenUncontrolPlayerPresented {
+//                    _fullscreenUncontrolPlayerPresented = false
+//
+//
+//
+//                }
+//            }
 
             if let reactVC = self.reactViewController() {
                 reactVC.view.frame = bounds
@@ -1786,6 +1786,26 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
             }
         }
     }
+  
+  func handleWillEnterFullScreen() {
+    RCTLog("RCTVideo - will enter full screen")
+    self.onVideoFullscreenPlayerWillPresent?(["target": self.reactTag as Any])
+  }
+  
+  func handleDidEnterFullScreen() {
+    RCTLog("RCTVideo - did enter full screen")
+    self.onVideoFullscreenPlayerDidPresent?(["target": self.reactTag as Any])
+  }
+  
+  func handleWillExitFullScreen() {
+    RCTLog("RCTVideo - will exit full screen")
+    self.onVideoFullscreenPlayerWillDismiss?(["target": self.reactTag as Any])
+  }
+  
+  func handleDidExitFullScreen() {
+    RCTLog("RCTVideo - did exit full screen")
+    self.onVideoFullscreenPlayerDidDismiss?(["target": self.reactTag as Any])
+  }
 
     @objc
     func handleDidFailToFinishPlaying(notification: NSNotification!) {
