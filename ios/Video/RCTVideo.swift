@@ -1691,10 +1691,20 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     }
      
     func handleDidEnterFullScreen() {
+        if #available(iOS 16.0, *) {
+            let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+            windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
+        }
+
         self.onVideoFullscreenPlayerDidPresent?(["target": self.reactTag as Any])
     }
      
     func handleWillExitFullScreen() {
+        if #available(iOS 16.0, *) {
+            let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+            windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
+        }
+
         self.onVideoFullscreenPlayerWillDismiss?(["target": self.reactTag as Any])
     }
      
