@@ -231,7 +231,6 @@ class NowPlayingInfoCenterManager {
             MPMediaItemPropertyPlaybackDuration: currentItem.duration.seconds,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: currentItem.currentTime().seconds.rounded(),
             MPNowPlayingInfoPropertyPlaybackRate: player.rate,
-            MPNowPlayingInfoPropertyIsLiveStream: CMTIME_IS_INDEFINITE(currentItem.asset.duration),
         ]
         let currentNowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
 
