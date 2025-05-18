@@ -10,9 +10,11 @@ import static androidx.media3.common.C.TIME_END_OF_SOURCE;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.content.pm.PackageManager;
 import android.app.PictureInPictureParams;
 import android.app.RemoteAction;
 import android.app.AlertDialog;
+import android.util.Log;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -152,6 +154,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import com.facebook.react.modules.core.DeviceEventManagerModule;
+
+// public interface PlaybackServiceCallback {
+//     void onPlaybackProgress();
+// }
+
 @SuppressLint("ViewConstructor")
 public class ReactExoplayerView extends FrameLayout implements
         LifecycleEventListener,
@@ -160,6 +168,7 @@ public class ReactExoplayerView extends FrameLayout implements
         BecomingNoisyListener,
         DrmSessionEventListener,
         AdEvent.AdEventListener,
+        // PlaybackServiceCallback,
         AdErrorEvent.AdErrorListener {
 
     public static final double DEFAULT_MAX_HEAP_ALLOCATION_PERCENT = 1;
@@ -294,6 +303,27 @@ public class ReactExoplayerView extends FrameLayout implements
                 lastPos = pos;
                 lastBufferDuration = bufferedDuration;
                 lastDuration = duration;
+
+                // Tick to keep the main Activity active, by modifying the Window
+                if (themedReactContext != null) {
+                    Log.w(
+                        "ReactExoplayerView > updateProgress",
+                        "Sending no-op event to keep things alive"
+                    );
+                    // setKeepScreenOn(preventsDisplaySleepDuringVideoPlayback);
+                    setKeepScreenOn(Math.random() < 0.5);
+                    // Handler mainHandler = new Handler(Looper.getMainLooper());
+                    // mainHandler.post(() -> {
+                    //     themedReactContext
+                    //         .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                    //         .emit("PlaybackServiceAlive", null);
+                    // });
+                }
+
+                Log.w(
+                    "ReactExoplayerView > updateProgress",
+                    "Emitting onVideoProgress event"
+                );
                 eventEmitter.onVideoProgress.invoke(pos, bufferedDuration, player.getDuration(), getPositionInFirstPeriodMsForCurrentWindow(pos));
             }
         }
@@ -373,6 +403,11 @@ public class ReactExoplayerView extends FrameLayout implements
             setPlayWhenReady(!isPaused);
         }
         isInBackground = false;
+        Log.w(
+            "onHostResume",
+            "Bringing back video view"
+        );
+        exoPlayerView.setVideoView();
     }
 
     @Override
@@ -385,6 +420,11 @@ public class ReactExoplayerView extends FrameLayout implements
             return;
         }
         setPlayWhenReady(false);
+        Log.w(
+            "onHostPause",
+            "Clearing video view"
+        );
+        exoPlayerView.clearVideoView();
     }
 
     @Override
@@ -497,6 +537,10 @@ public class ReactExoplayerView extends FrameLayout implements
         eventListener = new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
+                Log.w(
+                    "onPlaybackStateChanged",
+                    "Re-layout shenanigans?"
+                );
                 View playButton = playerControlView.findViewById(R.id.exo_play);
                 View pauseButton = playerControlView.findViewById(R.id.exo_pause);
                 if (playButton != null && playButton.getVisibility() == GONE) {
@@ -506,7 +550,7 @@ public class ReactExoplayerView extends FrameLayout implements
                     pauseButton.setVisibility(INVISIBLE);
                 }
 
-                reLayout(playPauseControlContainer);
+                // reLayout(playPauseControlContainer);
                 //Remove this eventListener once its executed. since UI will work fine once after the reLayout is done
                 player.removeListener(eventListener);
             }
@@ -656,8 +700,6 @@ public class ReactExoplayerView extends FrameLayout implements
         }
     }
 
-
-
     private void reLayoutControls() {
         reLayout(exoPlayerView);
         reLayout(playerControlView);
@@ -677,13 +719,13 @@ public class ReactExoplayerView extends FrameLayout implements
         if (player == null) {
             return;
         }
-        if (enableDebug) {
+        // if (enableDebug) {
             debugEventLogger = new EventLogger(TAG_EVENT_LOGGER);
             player.addAnalyticsListener(debugEventLogger);
-        } else if (debugEventLogger != null) {
-            player.removeAnalyticsListener(debugEventLogger);
-            debugEventLogger = null;
-        }
+        // } else if (debugEventLogger != null) {
+        //    player.removeAnalyticsListener(debugEventLogger);
+        //    debugEventLogger = null;
+        // }
     }
 
     public void setViewType(int viewType) {
@@ -1061,8 +1103,7 @@ public class ReactExoplayerView extends FrameLayout implements
                 try {
                     Activity currentActivity = themedReactContext.getCurrentActivity();
                     if (currentActivity != null) {
-                        playbackServiceBinder.getService().registerPlayer(player,
-                                (Class<Activity>) currentActivity.getClass());
+                        playbackServiceBinder.getService().registerPlayer(player, (Class<Activity>) currentActivity.getClass());
                     } else {
                         // Handle the case where currentActivity is null
                         DebugLog.w(TAG, "Could not register ExoPlayer: currentActivity is null");
@@ -1490,7 +1531,11 @@ public class ReactExoplayerView extends FrameLayout implements
         if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) || events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)) {
             int playbackState = player.getPlaybackState();
             boolean playWhenReady = player.getPlayWhenReady();
-            String text = "onStateChanged: playWhenReady=" + playWhenReady + ", playbackState=";
+            String text = "onStateChanged: playWhenReady=" + playWhenReady;
+            Log.w(
+                "ReactExoplayerView.java",
+                "[onEvents] " + text
+            );
             eventEmitter.onPlaybackRateChange.invoke(playWhenReady && playbackState == ExoPlayer.STATE_READY ? 1.0f : 0.0f);
             switch (playbackState) {
                 case Player.STATE_IDLE:
@@ -1535,7 +1580,7 @@ public class ReactExoplayerView extends FrameLayout implements
                     text += "unknown";
                     break;
             }
-            DebugLog.d(TAG, text);
+            DebugLog.w(TAG, text);
         }
     }
 
@@ -1818,6 +1863,7 @@ public class ReactExoplayerView extends FrameLayout implements
 
     @Override
     public void onTimelineChanged(@NonNull Timeline timeline, int reason) {
+        DebugLog.w(TAG, "[onTimelineChanged] Should we do something here? Does the track change now?");
         // Do nothing.
     }
 

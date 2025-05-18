@@ -1,5 +1,6 @@
 package com.brentvatne.common.react
 
+import android.util.Log
 import com.brentvatne.common.api.TimedMetadata
 import com.brentvatne.common.api.Track
 import com.brentvatne.common.api.VideoTrack
@@ -27,7 +28,6 @@ enum class EventTypes(val eventName: String) {
     EVENT_FULLSCREEN_DID_PRESENT("onVideoFullscreenPlayerDidPresent"),
     EVENT_FULLSCREEN_WILL_DISMISS("onVideoFullscreenPlayerWillDismiss"),
     EVENT_FULLSCREEN_DID_DISMISS("onVideoFullscreenPlayerDidDismiss"),
-
     EVENT_READY("onReadyForDisplay"),
     EVENT_BUFFER("onVideoBuffer"),
     EVENT_PLAYBACK_STATE_CHANGED("onVideoPlaybackStateChanged"),
@@ -39,7 +39,6 @@ enum class EventTypes(val eventName: String) {
     EVENT_VOLUME_CHANGE("onVolumeChange"),
     EVENT_AUDIO_TRACKS("onAudioTracks"),
     EVENT_TEXT_TRACKS("onTextTracks"),
-
     EVENT_TEXT_TRACK_DATA_CHANGED("onTextTrackDataChanged"),
     EVENT_VIDEO_TRACKS("onVideoTracks"),
     EVENT_ON_RECEIVE_AD_EVENT("onReceiveAdEvent"),
@@ -47,29 +46,39 @@ enum class EventTypes(val eventName: String) {
 
     companion object {
         fun toMap() =
-            mutableMapOf<String, Any>().apply {
-                EventTypes.values().toList().forEach { eventType ->
-                    put("top${eventType.eventName.removePrefix("on")}", hashMapOf("registrationName" to eventType.eventName))
+                mutableMapOf<String, Any>().apply {
+                    EventTypes.values().toList().forEach { eventType ->
+                        put(
+                                "top${eventType.eventName.removePrefix("on")}",
+                                hashMapOf("registrationName" to eventType.eventName)
+                        )
+                    }
                 }
-            }
     }
 }
 
 class VideoEventEmitter {
     lateinit var onVideoLoadStart: () -> Unit
-    lateinit var onVideoLoad: (
-        duration: Long,
-        currentPosition: Long,
-        videoWidth: Int,
-        videoHeight: Int,
-        audioTracks: ArrayList<Track>,
-        textTracks: ArrayList<Track>,
-        videoTracks: ArrayList<VideoTrack>,
-        trackId: String?
-    ) -> Unit
-    lateinit var onVideoError: (errorString: String, exception: Exception, errorCode: String) -> Unit
-    lateinit var onVideoProgress: (currentPosition: Long, bufferedDuration: Long, seekableDuration: Long, currentPlaybackTime: Double) -> Unit
-    lateinit var onVideoBandwidthUpdate: (bitRateEstimate: Long, height: Int, width: Int, trackId: String?) -> Unit
+    lateinit var onVideoLoad:
+            (
+                    duration: Long,
+                    currentPosition: Long,
+                    videoWidth: Int,
+                    videoHeight: Int,
+                    audioTracks: ArrayList<Track>,
+                    textTracks: ArrayList<Track>,
+                    videoTracks: ArrayList<VideoTrack>,
+                    trackId: String?) -> Unit
+    lateinit var onVideoError:
+            (errorString: String, exception: Exception, errorCode: String) -> Unit
+    lateinit var onVideoProgress:
+            (
+                    currentPosition: Long,
+                    bufferedDuration: Long,
+                    seekableDuration: Long,
+                    currentPlaybackTime: Double) -> Unit
+    lateinit var onVideoBandwidthUpdate:
+            (bitRateEstimate: Long, height: Int, width: Int, trackId: String?) -> Unit
     lateinit var onVideoPlaybackStateChanged: (isPlaying: Boolean, isSeeking: Boolean) -> Unit
     lateinit var onVideoSeek: (currentPosition: Long, seekTime: Long) -> Unit
     lateinit var onVideoEnd: () -> Unit
@@ -100,58 +109,67 @@ class VideoEventEmitter {
         if (dispatcher != null) {
             val event = EventBuilder(surfaceId, view.id, dispatcher)
 
-            onVideoLoadStart = {
-                event.dispatch(EventTypes.EVENT_LOAD_START)
-            }
-            onVideoLoad = { duration, currentPosition, videoWidth, videoHeight, audioTracks, textTracks, videoTracks, trackId ->
-                event.dispatch(EventTypes.EVENT_LOAD) {
-                    putDouble("duration", duration / 1000.0)
-                    putDouble("currentTime", currentPosition / 1000.0)
+            onVideoLoadStart = { event.dispatch(EventTypes.EVENT_LOAD_START) }
+            onVideoLoad =
+                    {
+                            duration,
+                            currentPosition,
+                            videoWidth,
+                            videoHeight,
+                            audioTracks,
+                            textTracks,
+                            videoTracks,
+                            trackId ->
+                        event.dispatch(EventTypes.EVENT_LOAD) {
+                            putDouble("duration", duration / 1000.0)
+                            putDouble("currentTime", currentPosition / 1000.0)
 
-                    val naturalSize: WritableMap = aspectRatioToNaturalSize(videoWidth, videoHeight)
-                    putMap("naturalSize", naturalSize)
-                    trackId?.let { putString("trackId", it) }
-                    putArray("videoTracks", videoTracksToArray(videoTracks))
-                    putArray("audioTracks", audioTracksToArray(audioTracks))
-                    putArray("textTracks", textTracksToArray(textTracks))
+                            val naturalSize: WritableMap =
+                                    aspectRatioToNaturalSize(videoWidth, videoHeight)
+                            putMap("naturalSize", naturalSize)
+                            trackId?.let { putString("trackId", it) }
+                            putArray("videoTracks", videoTracksToArray(videoTracks))
+                            putArray("audioTracks", audioTracksToArray(audioTracks))
+                            putArray("textTracks", textTracksToArray(textTracks))
 
-                    // TODO: Actually check if you can.
-                    putBoolean("canPlayFastForward", true)
-                    putBoolean("canPlaySlowForward", true)
-                    putBoolean("canPlaySlowReverse", true)
-                    putBoolean("canPlayReverse", true)
-                    putBoolean("canPlayFastForward", true)
-                    putBoolean("canStepBackward", true)
-                    putBoolean("canStepForward", true)
-                }
-            }
+                            // TODO: Actually check if you can.
+                            putBoolean("canPlayFastForward", true)
+                            putBoolean("canPlaySlowForward", true)
+                            putBoolean("canPlaySlowReverse", true)
+                            putBoolean("canPlayReverse", true)
+                            putBoolean("canPlayFastForward", true)
+                            putBoolean("canStepBackward", true)
+                            putBoolean("canStepForward", true)
+                        }
+                    }
             onVideoError = { errorString, exception, errorCode ->
                 event.dispatch(EventTypes.EVENT_ERROR) {
                     putMap(
-                        "error",
-                        Arguments.createMap().apply {
-                            // Prepare stack trace
-                            val sw = StringWriter()
-                            val pw = PrintWriter(sw)
-                            exception.printStackTrace(pw)
-                            val stackTrace = sw.toString()
+                            "error",
+                            Arguments.createMap().apply {
+                                // Prepare stack trace
+                                val sw = StringWriter()
+                                val pw = PrintWriter(sw)
+                                exception.printStackTrace(pw)
+                                val stackTrace = sw.toString()
 
-                            putString("errorString", errorString)
-                            putString("errorException", exception.toString())
-                            putString("errorCode", errorCode)
-                            putString("errorStackTrace", stackTrace)
-                        }
+                                putString("errorString", errorString)
+                                putString("errorException", exception.toString())
+                                putString("errorCode", errorCode)
+                                putString("errorStackTrace", stackTrace)
+                            }
                     )
                 }
             }
-            onVideoProgress = { currentPosition, bufferedDuration, seekableDuration, currentPlaybackTime ->
-                event.dispatch(EventTypes.EVENT_PROGRESS) {
-                    putDouble("currentTime", currentPosition / 1000.0)
-                    putDouble("playableDuration", bufferedDuration / 1000.0)
-                    putDouble("seekableDuration", seekableDuration / 1000.0)
-                    putDouble("currentPlaybackTime", currentPlaybackTime)
-                }
-            }
+            onVideoProgress =
+                    { currentPosition, bufferedDuration, seekableDuration, currentPlaybackTime ->
+                        event.dispatch(EventTypes.EVENT_PROGRESS) {
+                            putDouble("currentTime", currentPosition / 1000.0)
+                            putDouble("playableDuration", bufferedDuration / 1000.0)
+                            putDouble("seekableDuration", seekableDuration / 1000.0)
+                            putDouble("currentPlaybackTime", currentPlaybackTime)
+                        }
+                    }
             onVideoBandwidthUpdate = { bitRateEstimate, height, width, trackId ->
                 event.dispatch(EventTypes.EVENT_BANDWIDTH) {
                     putDouble("bitrate", bitRateEstimate.toDouble())
@@ -177,6 +195,10 @@ class VideoEventEmitter {
                 }
             }
             onVideoEnd = {
+                Log.w(
+                        "VideoEventEmitter > onVideoEnd",
+                        "Video ended, is dispatcher null?: ${dispatcher}"
+                )
                 event.dispatch(EventTypes.EVENT_END)
             }
             onVideoFullscreenPlayerWillPresent = {
@@ -191,45 +213,38 @@ class VideoEventEmitter {
             onVideoFullscreenPlayerDidDismiss = {
                 event.dispatch(EventTypes.EVENT_FULLSCREEN_DID_DISMISS)
             }
-            onReadyForDisplay = {
-                event.dispatch(EventTypes.EVENT_READY)
-            }
+            onReadyForDisplay = { event.dispatch(EventTypes.EVENT_READY) }
             onVideoBuffer = { isBuffering ->
-                event.dispatch(EventTypes.EVENT_BUFFER) {
-                    putBoolean("isBuffering", isBuffering)
-                }
+                event.dispatch(EventTypes.EVENT_BUFFER) { putBoolean("isBuffering", isBuffering) }
             }
             onControlsVisibilityChange = { isVisible ->
                 event.dispatch(EventTypes.EVENT_CONTROLS_VISIBILITY_CHANGE) {
                     putBoolean("isVisible", isVisible)
                 }
             }
-            onVideoIdle = {
-                event.dispatch(EventTypes.EVENT_IDLE)
-            }
-            onTimedMetadata = fn@{ metadataArrayList ->
-                if (metadataArrayList.size == 0) {
-                    return@fn
-                }
-                event.dispatch(EventTypes.EVENT_TIMED_METADATA) {
-                    putArray(
-                        "metadata",
-                        Arguments.createArray().apply {
-                            metadataArrayList.forEachIndexed { _, metadata ->
-                                pushMap(
-                                    Arguments.createMap().apply {
-                                        putString("identifier", metadata.identifier)
-                                        putString("value", metadata.value)
-                                    }
-                                )
-                            }
+            onVideoIdle = { event.dispatch(EventTypes.EVENT_IDLE) }
+            onTimedMetadata =
+                    fn@{ metadataArrayList ->
+                        if (metadataArrayList.size == 0) {
+                            return@fn
                         }
-                    )
-                }
-            }
-            onVideoAudioBecomingNoisy = {
-                event.dispatch(EventTypes.EVENT_AUDIO_BECOMING_NOISY)
-            }
+                        event.dispatch(EventTypes.EVENT_TIMED_METADATA) {
+                            putArray(
+                                    "metadata",
+                                    Arguments.createArray().apply {
+                                        metadataArrayList.forEachIndexed { _, metadata ->
+                                            pushMap(
+                                                    Arguments.createMap().apply {
+                                                        putString("identifier", metadata.identifier)
+                                                        putString("value", metadata.value)
+                                                    }
+                                            )
+                                        }
+                                    }
+                            )
+                        }
+                    }
+            onVideoAudioBecomingNoisy = { event.dispatch(EventTypes.EVENT_AUDIO_BECOMING_NOISY) }
             onAudioFocusChanged = { hasFocus ->
                 event.dispatch(EventTypes.EVENT_AUDIO_FOCUS_CHANGE) {
                     putBoolean("hasAudioFocus", hasFocus)
@@ -269,14 +284,14 @@ class VideoEventEmitter {
                 event.dispatch(EventTypes.EVENT_ON_RECEIVE_AD_EVENT) {
                     putString("event", adEvent)
                     putMap(
-                        "data",
-                        Arguments.createMap().apply {
-                            adData?.let { data ->
-                                for ((key, value) in data) {
-                                    putString(key!!, value)
+                            "data",
+                            Arguments.createMap().apply {
+                                adData?.let { data ->
+                                    for ((key, value) in data) {
+                                        putString(key!!, value)
+                                    }
                                 }
                             }
-                        }
                     )
                 }
             }
@@ -288,78 +303,86 @@ class VideoEventEmitter {
         }
     }
 
-    private class EventBuilder(private val surfaceId: Int, private val viewId: Int, private val dispatcher: EventDispatcher) {
+    private class EventBuilder(
+            private val surfaceId: Int,
+            private val viewId: Int,
+            private val dispatcher: EventDispatcher
+    ) {
         fun dispatch(event: EventTypes, paramsSetter: (WritableMap.() -> Unit)? = null) =
-            dispatcher.dispatchEvent(object : Event<Event<*>>(surfaceId, viewId) {
-                override fun getEventName() = "top${event.eventName.removePrefix("on")}"
-                override fun getEventData() = Arguments.createMap().apply(paramsSetter ?: {})
-            })
+                dispatcher.dispatchEvent(
+                        object : Event<Event<*>>(surfaceId, viewId) {
+                            override fun getEventName() = "top${event.eventName.removePrefix("on")}"
+                            override fun getEventData() =
+                                    Arguments.createMap().apply(paramsSetter ?: {})
+                        }
+                )
     }
 
     private fun audioTracksToArray(audioTracks: java.util.ArrayList<Track>?): WritableArray =
-        Arguments.createArray().apply {
-            audioTracks?.forEachIndexed { i, format ->
-                pushMap(
-                    Arguments.createMap().apply {
-                        putInt("index", i)
-                        putString("title", format.title)
-                        format.mimeType?.let { putString("type", it) }
-                        format.language?.let { putString("language", it) }
-                        if (format.bitrate > 0) putInt("bitrate", format.bitrate)
-                        putBoolean("selected", format.isSelected)
-                    }
-                )
+            Arguments.createArray().apply {
+                audioTracks?.forEachIndexed { i, format ->
+                    pushMap(
+                            Arguments.createMap().apply {
+                                putInt("index", i)
+                                putString("title", format.title)
+                                format.mimeType?.let { putString("type", it) }
+                                format.language?.let { putString("language", it) }
+                                if (format.bitrate > 0) putInt("bitrate", format.bitrate)
+                                putBoolean("selected", format.isSelected)
+                            }
+                    )
+                }
             }
-        }
 
     private fun videoTracksToArray(videoTracks: java.util.ArrayList<VideoTrack>?): WritableArray =
-        Arguments.createArray().apply {
-            videoTracks?.forEachIndexed { _, vTrack ->
-                pushMap(
-                    Arguments.createMap().apply {
-                        putInt("width", vTrack.width)
-                        putInt("height", vTrack.height)
-                        putInt("bitrate", vTrack.bitrate)
-                        putString("codecs", vTrack.codecs)
-                        putString("trackId", vTrack.trackId)
-                        putInt("index", vTrack.index)
-                        putBoolean("selected", vTrack.isSelected)
-                        putInt("rotation", vTrack.rotation)
-                    }
-                )
+            Arguments.createArray().apply {
+                videoTracks?.forEachIndexed { _, vTrack ->
+                    pushMap(
+                            Arguments.createMap().apply {
+                                putInt("width", vTrack.width)
+                                putInt("height", vTrack.height)
+                                putInt("bitrate", vTrack.bitrate)
+                                putString("codecs", vTrack.codecs)
+                                putString("trackId", vTrack.trackId)
+                                putInt("index", vTrack.index)
+                                putBoolean("selected", vTrack.isSelected)
+                                putInt("rotation", vTrack.rotation)
+                            }
+                    )
+                }
             }
-        }
 
     private fun textTracksToArray(textTracks: ArrayList<Track>?): WritableArray =
-        Arguments.createArray().apply {
-            textTracks?.forEachIndexed { i, format ->
-                pushMap(
-                    Arguments.createMap().apply {
-                        putInt("index", i)
-                        putString("title", format.title)
-                        putString("type", format.mimeType)
-                        putString("language", format.language)
-                        putBoolean("selected", format.isSelected)
-                    }
-                )
+            Arguments.createArray().apply {
+                textTracks?.forEachIndexed { i, format ->
+                    pushMap(
+                            Arguments.createMap().apply {
+                                putInt("index", i)
+                                putString("title", format.title)
+                                putString("type", format.mimeType)
+                                putString("language", format.language)
+                                putBoolean("selected", format.isSelected)
+                            }
+                    )
+                }
             }
-        }
 
     private fun aspectRatioToNaturalSize(videoWidth: Int, videoHeight: Int): WritableMap =
-        Arguments.createMap().apply {
-            if (videoWidth > 0) {
-                putInt("width", videoWidth)
-            }
-            if (videoHeight > 0) {
-                putInt("height", videoHeight)
-            }
+            Arguments.createMap().apply {
+                if (videoWidth > 0) {
+                    putInt("width", videoWidth)
+                }
+                if (videoHeight > 0) {
+                    putInt("height", videoHeight)
+                }
 
-            val orientation = when {
-                videoWidth > videoHeight -> "landscape"
-                videoWidth < videoHeight -> "portrait"
-                else -> "square"
-            }
+                val orientation =
+                        when {
+                            videoWidth > videoHeight -> "landscape"
+                            videoWidth < videoHeight -> "portrait"
+                            else -> "square"
+                        }
 
-            putString("orientation", orientation)
-        }
+                putString("orientation", orientation)
+            }
 }

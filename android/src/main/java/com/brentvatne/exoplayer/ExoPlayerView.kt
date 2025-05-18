@@ -26,9 +26,7 @@ import com.brentvatne.common.api.ViewType
 import com.brentvatne.common.toolbox.DebugLog
 
 @UnstableApi
-class ExoPlayerView(private val context: Context) :
-    FrameLayout(context, null, 0),
-    AdViewProvider {
+class ExoPlayerView(private val context: Context) : FrameLayout(context, null, 0), AdViewProvider {
 
     var surfaceView: View? = null
         private set
@@ -37,16 +35,16 @@ class ExoPlayerView(private val context: Context) :
     private var layout: AspectRatioFrameLayout
     private var componentListener: ComponentListener
     private var player: ExoPlayer? = null
-    private var layoutParams: ViewGroup.LayoutParams = ViewGroup.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.MATCH_PARENT
-    )
+    private var layoutParams: ViewGroup.LayoutParams =
+            ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+            )
     private var adOverlayFrameLayout: FrameLayout? = null
     val isPlaying: Boolean
         get() = player != null && player?.isPlaying == true
 
-    @ViewType.ViewType
-    private var viewType = ViewType.VIEW_TYPE_SURFACE
+    @ViewType.ViewType private var viewType = ViewType.VIEW_TYPE_SURFACE
     private var hideShutterView = false
 
     private var localStyle = SubtitleStyle()
@@ -54,10 +52,7 @@ class ExoPlayerView(private val context: Context) :
     init {
         componentListener = ComponentListener()
 
-        val aspectRatioParams = LayoutParams(
-            LayoutParams.MATCH_PARENT,
-            LayoutParams.MATCH_PARENT
-        )
+        val aspectRatioParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         aspectRatioParams.gravity = Gravity.CENTER
         layout = AspectRatioFrameLayout(context)
         layout.layoutParams = aspectRatioParams
@@ -84,31 +79,29 @@ class ExoPlayerView(private val context: Context) :
         }
     }
 
-    private fun clearVideoView() {
+    fun clearVideoView() {
+        Log.w("clearVideoView", "Clearing")
         when (val view = surfaceView) {
             is TextureView -> player?.clearVideoTextureView(view)
-
             is SurfaceView -> player?.clearVideoSurfaceView(view)
-
             else -> {
                 Log.w(
-                    "clearVideoView",
-                    "Unexpected surfaceView type: ${surfaceView?.javaClass?.name}"
+                        "clearVideoView",
+                        "Unexpected surfaceView type: ${surfaceView?.javaClass?.name}"
                 )
             }
         }
     }
 
-    private fun setVideoView() {
+    fun setVideoView() {
+        Log.w("setVideoView", "Setting")
         when (val view = surfaceView) {
             is TextureView -> player?.setVideoTextureView(view)
-
             is SurfaceView -> player?.setVideoSurfaceView(view)
-
             else -> {
                 Log.w(
-                    "setVideoView",
-                    "Unexpected surfaceView type: ${surfaceView?.javaClass?.name}"
+                        "setVideoView",
+                        "Unexpected surfaceView type: ${surfaceView?.javaClass?.name}"
                 )
             }
         }
@@ -123,10 +116,10 @@ class ExoPlayerView(private val context: Context) :
             subtitleLayout.setFixedTextSize(TypedValue.COMPLEX_UNIT_SP, style.fontSize.toFloat())
         }
         subtitleLayout.setPadding(
-            style.paddingLeft,
-            style.paddingTop,
-            style.paddingTop,
-            style.paddingBottom
+                style.paddingLeft,
+                style.paddingTop,
+                style.paddingTop,
+                style.paddingBottom
         )
         if (style.opacity != 0.0f) {
             subtitleLayout.alpha = style.opacity
@@ -161,9 +154,10 @@ class ExoPlayerView(private val context: Context) :
                     surfaceView = SurfaceView(context)
                     viewNeedRefresh = true
                 }
-                (surfaceView as SurfaceView).setSecure(viewType == ViewType.VIEW_TYPE_SURFACE_SECURE)
+                (surfaceView as SurfaceView).setSecure(
+                        viewType == ViewType.VIEW_TYPE_SURFACE_SECURE
+                )
             }
-
             ViewType.VIEW_TYPE_TEXTURE -> {
                 if (surfaceView !is TextureView) {
                     surfaceView = TextureView(context)
@@ -172,7 +166,6 @@ class ExoPlayerView(private val context: Context) :
                 // Support opacity properly:
                 (surfaceView as TextureView).isOpaque = false
             }
-
             else -> {
                 DebugLog.wtf(TAG, "Unexpected texture view type: $viewType")
             }
@@ -210,11 +203,12 @@ class ExoPlayerView(private val context: Context) :
     }
 
     fun updateShutterViewVisibility() {
-        shutterView.visibility = if (this.hideShutterView) {
-            View.INVISIBLE
-        } else {
-            View.VISIBLE
-        }
+        shutterView.visibility =
+                if (this.hideShutterView) {
+                    View.INVISIBLE
+                } else {
+                    View.VISIBLE
+                }
     }
 
     override fun requestLayout() {
@@ -224,15 +218,14 @@ class ExoPlayerView(private val context: Context) :
 
     // AdsLoader.AdViewProvider implementation.
     override fun getAdViewGroup(): ViewGroup =
-        Assertions.checkNotNull(
-            adOverlayFrameLayout,
-            "exo_ad_overlay must be present for ad playback"
-        )
+            Assertions.checkNotNull(
+                    adOverlayFrameLayout,
+                    "exo_ad_overlay must be present for ad playback"
+            )
 
     /**
-     * Set the {@link ExoPlayer} to use. The {@link ExoPlayer#addListener} method of the
-     * player will be called and previous
-     * assignments are overridden.
+     * Set the {@link ExoPlayer} to use. The {@link ExoPlayer#addListener} method of the player will
+     * be called and previous assignments are overridden.
      *
      * @param player The {@link ExoPlayer} to use.
      */
@@ -272,8 +265,8 @@ class ExoPlayerView(private val context: Context) :
 
     private val measureAndLayout: Runnable = Runnable {
         measure(
-            MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+                MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
         )
         layout(left, top, right, bottom)
     }
@@ -304,6 +297,7 @@ class ExoPlayerView(private val context: Context) :
     }
 
     private inner class ComponentListener : Player.Listener {
+        // TODO: Add more listeners? On playback progress maybe?
         override fun onCues(cues: List<Cue>) {
             subtitleLayout.setCues(cues)
         }
@@ -317,9 +311,7 @@ class ExoPlayerView(private val context: Context) :
             // Here we use updateForCurrentTrackSelections to have a consistent behavior.
             // according to: https://github.com/androidx/media/issues/1207
             // sometimes media3 send bad Video size information
-            player?.let {
-                updateForCurrentTrackSelections(it.currentTracks)
-            }
+            player?.let { updateForCurrentTrackSelections(it.currentTracks) }
         }
 
         override fun onRenderedFirstFrame() {
@@ -327,6 +319,8 @@ class ExoPlayerView(private val context: Context) :
         }
 
         override fun onTracksChanged(tracks: Tracks) {
+            Log.w("ExoPlayerView > ComponentListener", "[onTracksChanged] Got tracks to change")
+
             updateForCurrentTrackSelections(tracks)
         }
     }
