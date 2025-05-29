@@ -296,6 +296,11 @@ public class ReactExoplayerView extends FrameLayout implements
                 lastDuration = duration;
                 eventEmitter.onVideoProgress.invoke(pos, bufferedDuration, player.getDuration(), getPositionInFirstPeriodMsForCurrentWindow(pos));
             }
+
+            // We perform an operation on the window to show that the UI thread (where we track progress)
+            // is still active and JS runtime should not be suspended.
+            // This setting is only relevant for visible windows, so doesn't change anything.
+            setKeepScreenOn(Math.random() > 0.5);
         }
     }
 
