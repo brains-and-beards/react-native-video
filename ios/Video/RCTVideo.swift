@@ -256,14 +256,15 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
             object: nil
         )
 
-        #if os(iOS)
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(handleRotation),
-                name: UIDevice.orientationDidChangeNotification,
-                object: nil
-            )
-        #endif
+        // This causes controls glitch when device rotates but app orientation is locked
+        // #if os(iOS)
+            // NotificationCenter.default.addObserver(
+            //     self,
+            //     selector: #selector(handleRotation),
+            //     name: UIDevice.orientationDidChangeNotification,
+            //     object: nil
+            // )
+        // #endif
 
         _playerObserver._handlers = self
         #if USE_VIDEO_CACHING
