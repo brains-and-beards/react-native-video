@@ -288,12 +288,28 @@ class VideoEventEmitter {
         }
     }
 
+    private class VideoEvent(
+        surfaceId: Int,
+        viewId: Int,
+        private val mEventName: String,
+        private val mEventData: WritableMap?
+    ) : Event<VideoEvent>(surfaceId, viewId) {
+        override fun getEventName() = mEventName
+        override fun getEventData() = mEventData
+    }
+
     private class EventBuilder(private val surfaceId: Int, private val viewId: Int, private val dispatcher: EventDispatcher) {
-        fun dispatch(event: EventTypes, paramsSetter: (WritableMap.() -> Unit)? = null) =
-            dispatcher.dispatchEvent(object : Event<Event<*>>(surfaceId, viewId) {
-                override fun getEventName() = "top${event.eventName.removePrefix("on")}"
-                override fun getEventData() = Arguments.createMap().apply(paramsSetter ?: {})
-            })
+        fun dispatch(event: EventTypes, paramsSetter: (WritableMap.() -> Unit)? = null) {
+            val eventData = Arguments.createMap().apply(paramsSetter ?: {})
+            dispatcher.dispatchEvent(
+                VideoEvent(
+                    surfaceId,
+                    viewId,
+                    "top${event.eventName.removePrefix("on")}",
+                    eventData
+                )
+            )
+        }
     }
 
     private fun audioTracksToArray(audioTracks: java.util.ArrayList<Track>?): WritableArray =
