@@ -24,6 +24,9 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.graphics.PixelFormat;
+import android.provider.Settings;
+import android.view.WindowManager;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
@@ -204,6 +207,9 @@ public class ReactExoplayerView extends FrameLayout implements
     private boolean isFullscreen;
     private boolean isInBackground;
     private boolean isPaused;
+
+    private View overlayView;
+    private WindowManager windowManager;
     private boolean isBuffering;
     private boolean muted = false;
     public boolean enterPictureInPictureOnLeave = false;
@@ -319,6 +325,60 @@ public class ReactExoplayerView extends FrameLayout implements
         }
     };
 
+    /*
+     Show a 1x1 pixel overlay to trick Samsung BBA into thinking our window is visible. 
+     This prevents JS runtime from being suspended during background playback.
+     */
+    private void showOverlay() {
+        Context context = getContext();
+        if (context == null) return;
+
+        // Check if we have overlay permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+            return;
+        }
+
+        if (overlayView != null) {
+            return;
+        }
+
+        try {
+            windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+            overlayView = new View(context);
+            overlayView.setBackgroundColor(0x00000000);
+
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                1, 1,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                    ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                    : WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                    | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            );
+            params.gravity = android.view.Gravity.TOP | android.view.Gravity.LEFT;
+            params.x = 0;
+            params.y = 0;
+
+            windowManager.addView(overlayView, params);
+           
+        } catch (Exception e) {
+            overlayView = null;
+        }
+    }
+
+    private void hideOverlay() {
+        if (overlayView != null && windowManager != null) {
+            try {
+                windowManager.removeView(overlayView);
+            } catch (Exception e) {
+               overlayView = null;
+            }
+            overlayView = null;
+        }
+    }
+
     public double getPositionInFirstPeriodMsForCurrentWindow(long currentPosition) {
         Timeline.Window window = new Timeline.Window();
         if(!player.getCurrentTimeline().isEmpty()) {
@@ -379,6 +439,7 @@ public class ReactExoplayerView extends FrameLayout implements
     // LifecycleEventListener implementation
     @Override
     public void onHostResume() {
+        hideOverlay();
         if (!playInBackground || !isInBackground) {
             setPlayWhenReady(!isPaused);
         }
@@ -392,6 +453,7 @@ public class ReactExoplayerView extends FrameLayout implements
         boolean isInPictureInPicture = Util.SDK_INT >= Build.VERSION_CODES.N && activity != null && activity.isInPictureInPictureMode();
         boolean isInMultiWindowMode = Util.SDK_INT >= Build.VERSION_CODES.N && activity != null && activity.isInMultiWindowMode();
         if (playInBackground || isInPictureInPicture || isInMultiWindowMode) {
+            showOverlay();
             return;
         }
         setPlayWhenReady(false);
@@ -1321,6 +1383,7 @@ public class ReactExoplayerView extends FrameLayout implements
             adsLoader = null;
         }
         progressHandler.removeMessages(SHOW_PROGRESS);
+        hideOverlay();
         audioBecomingNoisyReceiver.removeListener();
         pictureInPictureReceiver.removeListener();
         bandwidthMeter.removeEventListener(this);
