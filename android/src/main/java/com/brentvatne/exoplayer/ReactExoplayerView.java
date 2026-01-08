@@ -15,7 +15,9 @@ import android.app.RemoteAction;
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.BroadcastReceiver;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -210,6 +212,8 @@ public class ReactExoplayerView extends FrameLayout implements
 
     private View overlayView;
     private WindowManager windowManager;
+    private BroadcastReceiver screenOffReceiver;
+    private boolean isScreenOffReceiverRegistered = false;
     private boolean isBuffering;
     private boolean muted = false;
     public boolean enterPictureInPictureOnLeave = false;
@@ -362,13 +366,14 @@ public class ReactExoplayerView extends FrameLayout implements
             params.y = 0;
 
             windowManager.addView(overlayView, params);
-           
+            registerScreenOffReceiver();
         } catch (Exception e) {
             overlayView = null;
         }
     }
 
     private void hideOverlay() {
+        unregisterScreenOffReceiver();
         if (overlayView != null && windowManager != null) {
             try {
                 windowManager.removeView(overlayView);
@@ -377,6 +382,59 @@ public class ReactExoplayerView extends FrameLayout implements
             }
             overlayView = null;
         }
+    }
+
+    // Bring the app to foreground when screen turns off while in background.
+    private void bringAppToForeground() {
+        Context context = getContext();
+        if (context == null) return;
+
+        try {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                java.util.List<ActivityManager.AppTask> tasks = am.getAppTasks();
+                if (tasks != null && !tasks.isEmpty()) {
+                    tasks.get(0).moveToFront();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void registerScreenOffReceiver() {
+        if (isScreenOffReceiverRegistered) return;
+
+        Context context = getContext();
+        if (context == null) return;
+
+        screenOffReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
+                    if (isInBackground && player != null && player.isPlaying()) {
+                        bringAppToForeground();
+                    }
+                }
+            }
+        };
+
+        IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+        context.getApplicationContext().registerReceiver(screenOffReceiver, filter);
+        isScreenOffReceiverRegistered = true;
+    }
+
+    private void unregisterScreenOffReceiver() {
+        if (!isScreenOffReceiverRegistered || screenOffReceiver == null) return;
+
+        Context context = getContext();
+        if (context == null) return;
+
+        try {
+            context.getApplicationContext().unregisterReceiver(screenOffReceiver);
+        } catch (Exception ignored) {
+        }
+        screenOffReceiver = null;
+        isScreenOffReceiverRegistered = false;
     }
 
     public double getPositionInFirstPeriodMsForCurrentWindow(long currentPosition) {
