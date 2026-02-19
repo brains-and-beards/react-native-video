@@ -43,6 +43,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     private var _allowsExternalPlayback = true
     private var _selectedTextTrackCriteria: SelectedTrackCriteria = .none()
     private var _selectedAudioTrackCriteria: SelectedTrackCriteria = .none()
+    private weak var _subtitleButton: UIView?
     private var _playbackStalled = false
     private var _playInBackground = false
     private var _preventsDisplaySleepDuringVideoPlayback = true
@@ -1667,10 +1668,36 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
                 _playerLayer?.player = nil
                 _playerViewController?.player = nil
             }
+
+            setSubtitleButtonDisabled(_player.isExternalPlaybackActive)
+
             guard onVideoExternalPlaybackChange != nil else { return }
             onVideoExternalPlaybackChange?(["isExternalPlaybackActive": NSNumber(value: _player.isExternalPlaybackActive),
                                             "target": reactTag as Any])
         #endif
+    }
+
+    // Disables the native CC button in AVPlayerViewController when AirPlay is active.
+    private func setSubtitleButtonDisabled(_ disabled: Bool) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if disabled, _subtitleButton == nil, let playerVC = _playerViewController {
+                _subtitleButton = Self.findSubtitleButton(in: playerVC.view)
+            }
+            _subtitleButton?.alpha = disabled ? 0.2 : 1.0
+            _subtitleButton?.isUserInteractionEnabled = !disabled
+            if !disabled { _subtitleButton = nil }
+        }
+    }
+
+    private static func findSubtitleButton(in view: UIView) -> UIView? {
+        if let button = view as? UIButton,
+           let image = button.currentImage,
+           image.isSymbolImage,
+           image.description.contains("captions.bubble") {
+            return button
+        }
+        return view.subviews.lazy.compactMap { findSubtitleButton(in: $0) }.first
     }
 
     func handleViewControllerOverlayViewFrameChange(overlayView _: UIView, change: NSKeyValueObservedChange<CGRect>) {
