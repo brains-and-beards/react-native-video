@@ -424,7 +424,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
         if currentTime != nil && _source?.cropStart != nil {
             currentTime = CMTimeSubtract(currentTime!, CMTimeMake(value: _source?.cropStart ?? 0, timescale: 1000))
         }
-        let currentPlaybackTime = _player?.currentItem?.currentDate()
+        let currentPlaybackTime: Date? = nil // currentDate() is only relevant for HLS live streams. For our vidoes it always returns nil, so currentPlaybackTime was always 0. 
         let duration = CMTimeGetSeconds(playerDuration)
         var currentTimeSecs = CMTimeGetSeconds(currentTime ?? .zero)
 

@@ -21,6 +21,7 @@ class NowPlayingInfoCenterManager {
     private var togglePlayPauseTarget: Any?
 
     private let remoteCommandCenter = MPRemoteCommandCenter.shared()
+    private let metadataQueue = DispatchQueue(label: "com.reactnativevideo.nowplayinginfo")
 
     private var receivingRemoveControlEvents = false {
         didSet {
@@ -206,35 +207,45 @@ class NowPlayingInfoCenterManager {
             return
         }
 
-        // commonMetadata is metadata from asset, externalMetadata is custom metadata set by user
-        // externalMetadata should override commonMetadata to allow override metadata from source
-        let metadata = {
-            let common = Dictionary(uniqueKeysWithValues: currentItem.asset.commonMetadata.map { ($0.identifier, $0) })
-            let external = Dictionary(uniqueKeysWithValues: currentItem.externalMetadata.map { ($0.identifier, $0) })
-            return Array((common.merging(external) { _, new in new }).values)
-        }()
+        // Capture lightweight properties synchronously before dispatching
+        let asset = currentItem.asset
+        let externalMetadata = currentItem.externalMetadata
+        let duration = currentItem.duration.seconds
+        let currentTime = currentItem.currentTime().seconds.rounded()
+        let rate = player.rate
 
-        let titleItem = AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: .commonIdentifierTitle).first?.stringValue ?? ""
+        // Dispatch metadata loading to background queue to avoid blocking the main thread.
+        metadataQueue.async {
+            // commonMetadata is metadata from asset, externalMetadata is custom metadata set by user
+            // externalMetadata should override commonMetadata to allow override metadata from source
+            let metadata = {
+                let common = Dictionary(uniqueKeysWithValues: asset.commonMetadata.map { ($0.identifier, $0) })
+                let external = Dictionary(uniqueKeysWithValues: externalMetadata.map { ($0.identifier, $0) })
+                return Array((common.merging(external) { _, new in new }).values)
+            }()
 
-        let artistItem = AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: .commonIdentifierArtist).first?.stringValue ?? ""
+            let titleItem = AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: .commonIdentifierTitle).first?.stringValue ?? ""
 
-        // I have some issue with this - setting artworkItem when it not set dont return nil but also is crashing application
-        // this is very hacky workaround for it
-        let imgData = AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: .commonIdentifierArtwork).first?.dataValue
-        let image = imgData.flatMap { UIImage(data: $0) } ?? UIImage()
-        let artworkItem = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+            let artistItem = AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: .commonIdentifierArtist).first?.stringValue ?? ""
 
-        let newNowPlayingInfo: [String: Any] = [
-            MPMediaItemPropertyTitle: titleItem,
-            MPMediaItemPropertyArtist: artistItem,
-            MPMediaItemPropertyArtwork: artworkItem,
-            MPMediaItemPropertyPlaybackDuration: currentItem.duration.seconds,
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: currentItem.currentTime().seconds.rounded(),
-            MPNowPlayingInfoPropertyPlaybackRate: player.rate,
-        ]
-        let currentNowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+            // I have some issue with this - setting artworkItem when it not set dont return nil but also is crashing application
+            // this is very hacky workaround for it
+            let imgData = AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: .commonIdentifierArtwork).first?.dataValue
+            let image = imgData.flatMap { UIImage(data: $0) } ?? UIImage()
+            let artworkItem = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
 
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = currentNowPlayingInfo.merging(newNowPlayingInfo) { _, new in new }
+            let newNowPlayingInfo: [String: Any] = [
+                MPMediaItemPropertyTitle: titleItem,
+                MPMediaItemPropertyArtist: artistItem,
+                MPMediaItemPropertyArtwork: artworkItem,
+                MPMediaItemPropertyPlaybackDuration: duration,
+                MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
+                MPNowPlayingInfoPropertyPlaybackRate: rate,
+            ]
+            let currentNowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = currentNowPlayingInfo.merging(newNowPlayingInfo) { _, new in new }
+        }
     }
 
     private func findNewCurrentPlayer() {
