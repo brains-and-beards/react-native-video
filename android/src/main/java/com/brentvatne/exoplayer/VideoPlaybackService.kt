@@ -202,7 +202,8 @@ class VideoPlaybackService : MediaSessionService() {
                 .setContentTitle(session.player.mediaMetadata.title)
                 .setContentText(session.player.mediaMetadata.description)
                 .setContentIntent(PendingIntent.getActivity(this, 0, returnToPlayer, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
-                .setLargeIcon(session.player.mediaMetadata.artworkUri?.let { session.bitmapLoader.loadBitmap(it).get() })
+                // Skip large icon — loadBitmap().get() blocks the main thread and causes ANRs.
+                // On Android 13+ artwork is handled automatically via MediaStyle.
                 .setOngoing(true)
                 .build()
         }
