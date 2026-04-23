@@ -43,6 +43,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     private var _allowsExternalPlayback = true
     private var _selectedTextTrackCriteria: SelectedTrackCriteria = .none()
     private var _selectedAudioTrackCriteria: SelectedTrackCriteria = .none()
+    private var _selectedVideoTrackCriteria: SelectedTrackCriteria = .none()
     private weak var _subtitleButton: UIView?
     private var _playbackStalled = false
     private var _playInBackground = false
@@ -992,6 +993,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
         setSelectedTextTrack(_selectedTextTrackCriteria)
         setAudioOutput(_audioOutput)
         setSelectedAudioTrack(_selectedAudioTrackCriteria)
+        setSelectedVideoTrack(_selectedVideoTrackCriteria)
         setResizeMode(_resizeMode)
         setRepeat(_repeat)
         setControls(_controls)
@@ -1038,6 +1040,85 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
                     criteria: self._selectedTextTrackCriteria
                 )
             }
+        }
+    }
+
+    @objc
+    func setSelectedVideoTrack(_ selectedVideoTrack: NSDictionary?) {
+        setSelectedVideoTrack(SelectedTrackCriteria(selectedVideoTrack))
+    }
+
+    func setSelectedVideoTrack(_ selectedVideoTrack: SelectedTrackCriteria?) {
+        _selectedVideoTrackCriteria = selectedVideoTrack ?? SelectedTrackCriteria.none()
+        applySelectedVideoTrack()
+    }
+
+    private func applySelectedVideoTrack() {
+        guard let playerItem = _playerItem else { return }
+
+        func applyPreferredPeakBitRate(_ bitrate: Double?) {
+            if let bitrate {
+                playerItem.preferredPeakBitRate = bitrate
+            } else if let maxBitRate = _maxBitRate {
+                playerItem.preferredPeakBitRate = Double(maxBitRate)
+            } else {
+                playerItem.preferredPeakBitRate = 0
+            }
+        }
+
+        switch _selectedVideoTrackCriteria.type {
+        case "", "auto", "disabled", "none":
+            playerItem.preferredMaximumResolution = .zero
+            applyPreferredPeakBitRate(nil)
+        case "resolution":
+            guard
+                let value = _selectedVideoTrackCriteria.value,
+                let height = Double(value),
+                height > 0
+            else {
+                DebugLog("Ignoring invalid selectedVideoTrack resolution value '\(_selectedVideoTrackCriteria.value ?? "nil")'")
+                return
+            }
+
+            // AVPlayer treats this as an HLS ceiling, so constrain height and
+            // leave width effectively unbounded for the chosen rendition family.
+            playerItem.preferredMaximumResolution = CGSize(width: 10_000, height: height)
+
+            if #available(iOS 15.0, tvOS 15.0, visionOS 1.0, *),
+               let urlAsset = playerItem.asset as? AVURLAsset {
+                let matchingVariants = urlAsset.variants
+                    .filter { variant in
+                        guard let presentationSize = variant.videoAttributes?.presentationSize else {
+                            return false
+                        }
+                        return presentationSize.height > 0
+                    }
+                    .sorted { lhs, rhs in
+                        let lhsHeight = lhs.videoAttributes?.presentationSize.height ?? .greatestFiniteMagnitude
+                        let rhsHeight = rhs.videoAttributes?.presentationSize.height ?? .greatestFiniteMagnitude
+                        if lhsHeight == rhsHeight {
+                            let lhsBitrate = lhs.peakBitRate ?? .greatestFiniteMagnitude
+                            let rhsBitrate = rhs.peakBitRate ?? .greatestFiniteMagnitude
+                            return lhsBitrate < rhsBitrate
+                        }
+                        return lhsHeight < rhsHeight
+                    }
+
+                let preferredVariant =
+                    matchingVariants.last(where: { ($0.videoAttributes?.presentationSize.height ?? 0) <= height }) ??
+                    matchingVariants.first
+
+                if let preferredVariant, let peakBitRate = preferredVariant.peakBitRate, peakBitRate > 0 {
+                    applyPreferredPeakBitRate(peakBitRate)
+                } else {
+                    applyPreferredPeakBitRate(nil)
+                }
+            } else {
+                applyPreferredPeakBitRate(nil)
+            }
+        default:
+            DebugLog("selectedVideoTrack type '\(_selectedVideoTrackCriteria.type)' is not supported on iOS")
+            applyPreferredPeakBitRate(nil)
         }
     }
 
@@ -1406,6 +1487,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
         _chapters = nil
         _selectedTextTrackCriteria = SelectedTrackCriteria.none()
         _selectedAudioTrackCriteria = SelectedTrackCriteria.none()
+        _selectedVideoTrackCriteria = SelectedTrackCriteria.none()
         _presentingViewController = nil
 
         ReactNativeVideoManager.shared.onInstanceRemoved(id: instanceId, player: _player as Any)
