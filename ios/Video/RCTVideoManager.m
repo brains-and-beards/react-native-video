@@ -13,6 +13,7 @@ RCT_EXPORT_VIEW_PROPERTY(allowsExternalPlayback, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(textTracks, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(selectedTextTrack, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(selectedAudioTrack, NSDictionary);
+RCT_EXPORT_VIEW_PROPERTY(selectedVideoTrack, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(chapters, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(paused, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(muted, BOOL);
