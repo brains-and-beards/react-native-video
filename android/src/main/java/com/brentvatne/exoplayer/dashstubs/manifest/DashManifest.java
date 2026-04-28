@@ -1,4 +1,4 @@
-package androidx.media3.exoplayer.dash.manifest;
+package com.brentvatne.exoplayer.dashstubs.manifest;
 
 public class DashManifest {
     public DashManifest() {

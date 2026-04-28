@@ -1,4 +1,4 @@
-package androidx.media3.exoplayer.dash;
+package com.brentvatne.exoplayer.dashstubs;
 
 import androidx.media3.common.MediaItem;
 import androidx.media3.datasource.DataSource;
