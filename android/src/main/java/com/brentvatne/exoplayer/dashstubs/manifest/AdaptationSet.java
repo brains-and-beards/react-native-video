@@ -1,4 +1,4 @@
-package androidx.media3.exoplayer.dash.manifest;
+package com.brentvatne.exoplayer.dashstubs.manifest;
 
 import androidx.collection.CircularArray;
 import androidx.media3.common.C;
