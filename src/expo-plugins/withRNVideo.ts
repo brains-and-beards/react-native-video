@@ -56,4 +56,8 @@ const withRNVideo: ConfigPlugin<ConfigProps> = (config, props = {}) => {
   return config;
 };
 
-export default createRunOncePlugin(withRNVideo, pkg.name, pkg.version);
+export default createRunOncePlugin(
+  withRNVideo,
+  'react-native-video-legacy',
+  pkg.version,
+);
