@@ -28,6 +28,7 @@ class VideoPlaybackService : MediaSessionService() {
     private var mediaSessionsList = mutableMapOf<ExoPlayer, MediaSession>()
     private var binder = PlaybackServiceBinder(this)
     private var sourceActivity: Class<Activity>? = null
+    private var isForeground = false
 
     // Controls for Android 13+ - see buildNotification function
     private val commandSeekForward = SessionCommand(COMMAND.SEEK_FORWARD.stringValue, Bundle.EMPTY)
@@ -65,7 +66,12 @@ class VideoPlaybackService : MediaSessionService() {
         addSession(mediaSession)
 
         val notificationId = player.hashCode()
-        startForeground(notificationId, buildNotification(mediaSession))
+        try {
+            startForeground(notificationId, buildNotification(mediaSession))
+            isForeground = true
+        } catch (e: Exception) {
+            DebugLog.e(TAG, "Failed to start foreground service: " + e.message)
+        }
     }
 
     fun unregisterPlayer(player: ExoPlayer) {
@@ -249,8 +255,13 @@ class VideoPlaybackService : MediaSessionService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForeground(PLACEHOLDER_NOTIFICATION_ID, createPlaceholderNotification())
+        try {
+            if (!isForeground && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForeground(PLACEHOLDER_NOTIFICATION_ID, createPlaceholderNotification())
+                isForeground = true
+            }
+        } catch (e: Exception) {
+            DebugLog.e(TAG, "Failed to start foreground service: " + e.message)
         }
 
         intent?.let {
